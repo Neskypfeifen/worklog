@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nesky WorkLog v18.1</title>
+    <style>
+        :root { 
+            --bg: #ffffff; --card: #f5f5f5; --text: #2c3e50; --accent: #9c27b0; --danger: #d32f2f; 
+            --month-bg: #eeeeee; --input-bg: #ffffff; --btn-text: #546e7a; --summary-text: #ffffff;
+        }
+        [data-theme="dark"] {
+            --bg: #121212; --card: #1e1e1e; --text: #eceff1; --accent: #bb86fc; --danger: #f44336; 
+            --month-bg: #2c2c2c; --input-bg: #333333; --btn-text: #b0bec5; --summary-text: #1a1a1a;
+        }
+        
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; transition: 0.3s; display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; }
+        
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg); z-index: 200;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.8s ease-out, visibility 0.8s;
+        }
+        .splash-logo {
+            font-size: 2rem; font-weight: 900; color: var(--accent);
+            letter-spacing: 4px; text-transform: uppercase;
+            animation: pulseFade 2s ease-in-out forwards;
+        }
+        @keyframes pulseFade {
+            0% { opacity: 0; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.05); }
+            100% { opacity: 0; transform: scale(1.1); }
+        }
+
+        .app-header { text-align: center; margin: 10px 0 20px 0; }
+        .app-title { font-size: 1.8rem; font-weight: 900; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; }
+
+        .card { background: var(--card); padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1#welcome-msg { font-size: 1.1rem; color: var(--text); margin: 5px 0 15px 0; opacity: 0.9; text-align: center; }
+        h2 { color: var(--accent); margin-top: 0; font-size: 1.1rem; }
+        label { display: block; margin-top: 10px; font-size: 0.8rem; font-weight: bold; text-transform: uppercase; opacity: 0.8; }
+        
+        input, button, textarea, select { width: 100%; padding: 12px; margin: 5px 0; border-radius: 8px; border: 1px solid #555; background: var(--input-bg); color: var(--text); box-sizing: border-box; font-size: 1rem; }
+        textarea { height: 80px; resize: none; }
+        button#t-add { background: var(--accent); color: var(--summary-text); border: none; font-weight: bold; cursor: pointer; }
+
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .lang-container { display: flex; gap: 5px; }
+        .lang-btn, .theme-btn, .action-btn { width: auto; padding: 8px 12px; font-size: 0.85rem; background: transparent; color: var(--btn-text); border: 1px solid var(--accent); font-weight: bold; cursor: pointer; border-radius: 8px; }
+
+        .month-section { margin-top: 20px; border: 1px solid rgba(128,128,128,0.2); border-radius: 12px; overflow: hidden; background: var(--month-bg); margin-bottom: 15px; }
+        .month-header { background: rgba(128,128,128,0.1); padding: 12px; font-weight: bold; display: flex; justify-content: space-between; }
+        details { margin: 10px; border-radius: 8px; overflow: hidden; }
+        summary { background: var(--accent); color: var(--summary-text); padding: 10px; font-weight: bold; cursor: pointer; list-style: none; display: flex; justify-content: space-between; }
+        
+        .log-item { border-left: 4px solid var(--accent); padding: 10px; margin: 10px; background: var(--card); font-size: 0.85rem; border-radius: 0 8px 8px 0; }
+        .btn-edit { background: transparent; color: var(--btn-text); border: 1px solid var(--btn-text); padding: 5px 10px; width: auto; font-size: 12px; margin-right: 5px; margin-top: 10px; cursor: pointer; border-radius: 4px; }
+        .btn-delete { background: transparent; color: var(--danger); border: 1px solid var(--danger); padding: 5px 10px; width: auto; font-size: 12px; margin-top: 10px; cursor: pointer; border-radius: 4px; }
+        
+        .footer { margin-top: auto; padding: 20px 0; display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: bold; opacity: 0.8; letter-spacing: 1px; color: var(--btn-text); }
+        .footer img { width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--accent); object-fit: cover; }
+        
+        #backup-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        
+        @media print {
+            .top-bar, .app-header, .card:nth-of-type(1), #setup-screen, .btn-edit, .btn-delete, #backup-controls, .footer { display: none !important; }
+            body { background: white; color: black; padding: 0; }
+        }
+
+        #setup-screen { position: fixed; top:0; left:0; width:100%; height:100%; background: var(--bg); z-index: 150; display: flex; align-items: center; justify-content: center; text-align: center; }
+    </style>
+</head>
+<body data-theme="dark">
+
+    <div id="splash-screen">
+        <div class="splash-logo">Nesky WorkLog</div>
+    </div>
+
+    <div id="setup-screen" style="display: none;">
+        <div class="card" style="width: 85%;">
+            <h2 id="setup-title">Podaj imię / Name</h2>
+            <input type="text" id="setup-name">
+            <button onclick="saveSetup()" style="background: var(--accent); color: var(--summary-text); border:none; padding:10px; border-radius:8px;">START</button>
+        </div>
+    </div>
+
+    <div class="top-bar">
+        <button class="theme-btn" onclick="toggleTheme()" id="theme-toggle">🌙 / ☀️</button>
+        <div class="lang-container">
+            <button class="lang-btn" onclick="setLang('pl')">PL</button>
+            <button class="lang-btn" onclick="setLang('de')">DE</button>
+            <button class="lang-btn" onclick="setLang('en')">EN</button>
+        </div>
+    </div>
+
+    <div class="app-header">
+        <div class="app-title">Nesky WorkLog</div>
+    </div>
+
+    <h1 id="welcome-msg">Witaj!</h1>
+
+    <div class="card">
+        <h2 id="t-title">Nowy Wpis</h2>
+        <label id="t-date">Data pracy</label>
+        <input type="date" id="workDate">
+        <div style="display:flex; gap:10px;">
+            <div style="flex:1;"><label id="t-start">Start</label><input type="time" id="startTime"></div>
+            <div style="flex:1;"><label id="t-end">Koniec</label><input type="time" id="endTime"></div>
+        </div>
+        <label id="t-break">Przerwa</label>
+        <select id="breakTime"><option value="0">Brak</option><option value="0.5">30 min</option><option value="0.75">45 min</option></select>
+        <label id="t-work">Opis pracy</label>
+        <textarea id="workDescription"></textarea>
+        <button onclick="addEntry()" id="t-add">Zapisz dzień</button>
+    </div>
+
+    <div id="logs"></div>
+    
+    <div class="card" style="margin-top:20px;">
+        <h3 id="t-sum-title" style="margin:0;">Razem: <span id="totalHours">0.00</span>h</h3>
+        
+        <div id="backup-controls">
+            <button class="action-btn" onclick="shareBackup()" id="btn-share">☁️ Wyślij / Chmura</button>
+            <button class="action-btn" onclick="document.getElementById('importFile').click()" id="btn-import">📂 Importuj</button>
+            <button class="action-btn" onclick="window.print()" style="grid-column: span 2;" id="btn-pdf">🖨️ Drukuj do PDF</button>
+            <input type="file" id="importFile" style="display:none" onchange="importData(event)">
+        </div>
+    </div>
+
+    <div class="footer">
+        <div id="logo-container" style="width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--accent); overflow: hidden; display: flex; align-items: center; justify-content: center; background: var(--month-bg);">
+            <img src="logo.jpg" 
+                 alt="N" 
+                 style="width: 100%; height: 100%; object-fit: cover;"
+                 onerror="this.style.display='none'; this.parentElement.innerHTML='<span style=\'color:var(--accent); font-size:24px;\'>N</span>'">
+        </div>
+        <span>CREATED BY TOM NESKY</span>
+    </div>
+
+    <script>
+        const translations = {
+            pl: { welcome: "Dzień dobry", title: "Nowy Wpis", date: "Data pracy", start: "Start", end: "Koniec", brk: "Przerwa", noBreak: "Brak", work: "Opis pracy", placeholder: "Co dziś zrobiłeś?", add: "Zapisz dzień", sum: "Razem", week: "Tydzień", edit: "Edytuj", del: "Usuń", share: "☁️ Wyślij / Chmura", import: "📂 Importuj", pdf: "🖨️ Drukuj do PDF", months: ["Styczeń", "Luty", "Marzec", "Kwiecień", "Maj", "Czerwiec", "Lipiec", "Sierpień", "Wrzesień", "Październik", "Listopad", "Grudzień"], days: ["Nd", "Pn", "Wt", "Śr", "Cz", "Pt", "Sb"] },
+            de: { welcome: "Guten Tag", title: "Neuer Eintrag", date: "Datum", start: "Beginn", end: "Ende", brk: "Pause", noBreak: "Keine", work: "Beschreibung", placeholder: "Was hast du gemacht?", add: "Tag speichern", sum: "Gesamt", week: "Woche", edit: "Bearbeiten", del: "Löschen", share: "☁️ Senden / Cloud", import: "📂 Importieren", pdf: "🖨️ Jako PDF", months: ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"], days: ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"] },
+            en: { welcome: "Good morning", title: "New Entry", date: "Date", start: "Start", end: "End", brk: "Break", noBreak: "None", work: "Work Description", placeholder: "What did you do?", add: "Save Day", sum: "Total", week: "Week", edit: "Edit", del: "Delete", share: "☁️ Send / Cloud", import: "📂 Import", pdf: "🖨️ Print to PDF", months: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], days: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] }
+        };
+
+        let currentLang = localStorage.getItem('userLang') || 'pl';
+        let userName = localStorage.getItem('userName') || "";
+        let entries = JSON.parse(localStorage.getItem('workEntries')) || [];
+        let editIndex = -1;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                const splash = document.getElementById('splash-screen');
+                if(splash) { splash.style.opacity = '0'; setTimeout(() => splash.style.visibility = 'hidden', 800); }
+            }, 2500);
+            if(!userName) { document.getElementById('setup-screen').style.display = 'flex'; } else { setLang(currentLang); }
+            document.getElementById('workDate').valueAsDate = new Date();
+            renderLogs();
+        });
+
+        async function shareBackup() {
+            const data = JSON.stringify({ userName, entries }, null, 2);
+            const fileName = `nesky-backup-${new Date().toISOString().slice(0,10)}.txt`;
+            const file = new File([data], fileName, { type: 'text/plain' });
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try { await navigator.share({ files: [file], title: 'Nesky WorkLog Backup' }); } catch (err) {}
+            } else {
+                const blob = new Blob([data], { type: 'text/plain' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = fileName;
+                a.click();
+            }
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (confirm(`Wczytać dane dla: ${imported.userName}?`)) {
+                        userName = imported.userName; entries = imported.entries;
+                        localStorage.setItem('userName', userName); localStorage.setItem('workEntries', JSON.stringify(entries));
+                        location.reload();
+                    }
+                } catch (err) { alert("Błąd pliku!"); }
+            };
+            reader.readAsText(file);
+        }
+
+        function toggleTheme() {
+            const body = document.body;
+            const newTheme = body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+        if(localStorage.getItem('theme')) document.body.setAttribute('data-theme', localStorage.getItem('theme'));
+
+        function getWeekNumber(d) {
+            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+            return Math.ceil((((d - new Date(Date.UTC(d.getUTCFullYear(),0,1))) / 86400000) + 1)/7);
+        }
+
+        function saveSetup() {
+            const name = document.getElementById('setup-name').value;
+            if(name) { localStorage.setItem('userName', name); userName = name; document.getElementById('setup-screen').style.display = 'none'; setLang(currentLang); }
+        }
+
+        function setLang(lang) {
+            currentLang = lang; localStorage.setItem('userLang', lang);
+            const t = translations[lang];
+            if(userName) document.getElementById('welcome-msg').innerText = `${t.welcome}, ${userName}!`;
+            document.getElementById('t-title').innerText = t.title;
+            document.getElementById('t-date').innerText = t.date;
+            document.getElementById('t-start').innerText = t.start;
+            document.getElementById('t-end').innerText = t.end;
+            document.getElementById('t-break').innerText = t.brk;
+            document.getElementById('breakTime').options[0].text = t.noBreak;
+            document.getElementById('t-work').innerText = t.work;
+            document.getElementById('workDescription').placeholder = t.placeholder;
+            document.getElementById('t-add').innerText = t.add;
+            document.getElementById('btn-share').innerText = t.share;
+            document.getElementById('btn-import').innerText = t.import;
+            document.getElementById('btn-pdf').innerText = t.pdf;
+            document.getElementById('t-sum-title').innerHTML = `${t.sum}: <span id="totalHours">0.00</span>h`;
+            renderLogs();
+        }
+
+        function addEntry() {
+            const dateVal = document.getElementById('workDate').value;
+            const start = document.getElementById('startTime').value;
+            const end = document.getElementById('endTime').value;
+            const breakVal = parseFloat(document.getElementById('breakTime').value);
+            const work = document.getElementById('workDescription').value;
+            if(!dateVal || !start || !end || !work) return;
+            let duration = (new Date(`1970-01-01T${end}`) - new Date(`1970-01-01T${start}`)) / 3600000;
+            duration = Math.max(0, duration - breakVal);
+            const entry = { date: dateVal, start, end, breakVal, work, duration };
+            if(editIndex > -1) entries[editIndex] = entry; else entries.push(entry);
+            entries.sort((a, b) => new Date(b.date) - new Date(a.date));
+            localStorage.setItem('workEntries', JSON.stringify(entries));
+            editIndex = -1; document.getElementById('workDescription').value = ""; renderLogs();
+        }
+
+        function deleteEntry(idx) { if(confirm("Usunąć?")) { entries.splice(idx, 1); localStorage.setItem('workEntries', JSON.stringify(entries)); renderLogs(); } }
+        
+        function editEntry(idx) {
+            const e = entries[idx];
+            document.getElementById('workDate').value = e.date; document.getElementById('startTime').value = e.start;
+            document.getElementById('endTime').value = e.end; document.getElementById('breakTime').value = e.breakVal || 0;
+            document.getElementById('workDescription').value = e.work;
+            editIndex = idx; window.scrollTo(0,0);
+        }
+
+        function renderLogs() {
+            const container = document.getElementById('logs'); if(!container) return;
+            container.innerHTML = '';
+            let totalOverall = 0; const structure = {};
+            const t = translations[currentLang];
+            entries.forEach((e, idx) => {
+                totalOverall += e.duration;
+                const d = new Date(e.date); const mKey = `${d.getFullYear()}-${d.getMonth().toString().padStart(2, '0')}`;
+                if (!structure[mKey]) structure[mKey] = { weeks: {}, total: 0, label: `${t.months[d.getMonth()]} ${d.getFullYear()}` };
+                structure[mKey].total += e.duration;
+                const wNum = getWeekNumber(d);
+                if (!structure[mKey].weeks[wNum]) structure[mKey].weeks[wNum] = { items: [], total: 0 };
+                structure[mKey].weeks[wNum].total += e.duration;
+                structure[mKey].weeks[wNum].items.push({...e, idx, dayName: t.days[d.getDay()]});
+            });
+            Object.keys(structure).sort().reverse().forEach(mKey => {
+                const month = structure[mKey];
+                const mSection = document.createElement('div'); mSection.className = 'month-section';
+                mSection.innerHTML = `<div class="month-header"><span>${month.label}</span><span>${month.total.toFixed(2)}h</span></div>`;
+                Object.keys(month.weeks).sort((a,b) => b-a).forEach(wKey => {
+                    const week = month.weeks[wKey]; const det = document.createElement('details');
+                    det.innerHTML = `<summary><span>${t.week} ${wKey}</span><span>${week.total.toFixed(2)}h</span></summary>`;
+                    week.items.forEach(e => {
+                        const item = document.createElement('div'); item.className = 'log-item';
+                        const bTxt = e.breakVal > 0 ? ` (P: ${e.breakVal * 60}m)` : "";
+                        item.innerHTML = `<small>${e.dayName}, ${e.date.split('-').reverse().join('.')}</small><br><b>${e.start}-${e.end}</b>${bTxt} (${e.duration.toFixed(2)}h)<br><i>${e.work}</i><br><button class="btn-edit" onclick="editEntry(${e.idx})">${t.edit}</button><button class="btn-delete" onclick="deleteEntry(${e.idx})">${t.del}</button>`;
+                        det.appendChild(item);
+                    });
+                    mSection.appendChild(det);
+                });
+                container.appendChild(mSection);
+            });
+            const th = document.getElementById('totalHours'); if(th) th.innerText = totalOverall.toFixed(2);
+        }
+    </script>
+</body>
+</html>
