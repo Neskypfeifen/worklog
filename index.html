@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nesky WorkLog v2.4</title>
+    <title>Nesky WorkLog v2.5</title>
     <style>
         :root {
             --bg: #121212; --card: #1e1e1e; --text: #eceff1; --accent: #bb86fc;
-            --secondary: #9c27b0; --vacation: #03dac6; --error: #cf6679;
+            --secondary: #9c27b0; --vacation: #03dac6; --break: #ffb74d; --error: #cf6679;
         }
         body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
         .container { max-width: 500px; width: 100%; }
@@ -16,32 +16,38 @@
         .lang-btn { background: none; border: 1px solid #333; color: #777; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.8rem; }
         .lang-btn.active { border-color: var(--accent); color: var(--accent); }
 
-        .header { text-align: center; padding: 10px 0 20px 0; }
+        .header { text-align: center; padding: 10px 0; }
         .header h1 { color: var(--accent); margin: 0; text-transform: uppercase; font-size: 1.6rem; letter-spacing: 2px; }
         
         .card { background: var(--card); border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); margin-bottom: 20px; }
         
-        label { display: block; margin-bottom: 5px; font-size: 0.9rem; color: var(--accent); }
+        label { display: block; margin-bottom: 5px; font-size: 0.9rem; color: var(--accent); font-weight: bold; }
         input, textarea { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #333; background: #222; color: white; font-size: 1rem; box-sizing: border-box; font-family: sans-serif; }
-        textarea { height: 60px; resize: none; }
         
+        .break-group { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 15px; }
+        .btn-break { background: #333; color: var(--break); border: 1px solid var(--break); padding: 5px 8px; font-size: 0.75rem; border-radius: 5px; cursor: pointer; flex: 1; min-width: 60px; }
+        .btn-break.selected { background: var(--break); color: #121212; }
+
         .btn-group { display: flex; gap: 10px; margin-bottom: 10px; }
         button { flex: 1; padding: 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.9rem; }
         .btn-save { background: var(--secondary); color: white; }
         .btn-vacation { background: transparent; color: var(--vacation); border: 2px solid var(--vacation); }
         
         .io-group { display: flex; gap: 10px; margin-top: 10px; border-top: 1px solid #333; padding-top: 15px; }
-        .btn-io { background: #333; color: #bbb; padding: 8px; font-size: 0.75rem; flex: 1; }
+        .btn-io { background: #333; color: #bbb; padding: 8px; font-size: 0.7rem; flex: 1; border-radius: 5px; }
 
         .history-item { background: var(--card); padding: 15px; border-radius: 10px; margin-bottom: 10px; border-left: 4px solid var(--accent); display: flex; justify-content: space-between; align-items: flex-start; }
         .item-vacation { border-left-color: var(--vacation); }
         .info { flex: 1; }
         .info b { color: var(--accent); display: block; margin-bottom: 2px; }
-        .info .desc { display: block; font-size: 0.9rem; opacity: 0.8; margin-top: 5px; font-style: italic; color: #ccc; }
+        .info .desc { display: block; font-size: 0.85rem; opacity: 0.8; margin-top: 5px; color: #ccc; line-height: 1.3; }
         .v-text { color: var(--vacation); font-weight: bold; font-size: 0.85rem; }
-        .delete-btn { color: var(--error); background: none; border: none; font-size: 1.5rem; cursor: pointer; padding-left: 10px; }
+        .break-text { color: var(--break); font-size: 0.85rem; font-weight: bold; }
+        .delete-btn { color: var(--error); background: none; border: none; font-size: 1.5rem; cursor: pointer; }
 
-        .footer-stats { margin-top: 20px; opacity: 0.5; font-size: 0.8rem; text-align: center; border-top: 1px solid #333; padding-top: 15px; }
+        .stats-box { background: rgba(187, 134, 252, 0.05); border: 1px solid rgba(187, 134, 252, 0.2); border-radius: 10px; padding: 15px; margin-bottom: 20px; font-size: 0.85rem; }
+        .stats-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .stats-val { color: var(--accent); font-weight: bold; }
     </style>
 </head>
 <body>
@@ -55,25 +61,35 @@
 
         <div class="header">
             <h1>NESKY WORKLOG</h1>
-            <p id="sub-title" style="opacity:0.5; font-size:0.75rem; margin-top:5px;"></p>
         </div>
 
+        <div class="stats-box" id="statsArea"></div>
+
         <div class="card">
-            <label id="lbl-date"></label>
+            <label id="lbl-date">Data</label>
             <input type="date" id="workDate">
             
-            <label id="lbl-time"></label>
+            <label id="lbl-time">Czas pracy (Od - Do)</label>
             <div style="display: flex; gap: 10px;">
                 <input type="time" id="startTime">
                 <input type="time" id="endTime">
             </div>
 
-            <label id="lbl-desc"></label>
-            <textarea id="workDesc"></textarea>
+            <label id="lbl-break">Przerwa</label>
+            <div class="break-group">
+                <button class="btn-break" onclick="setBreak(15)">15m</button>
+                <button class="btn-break" onclick="setBreak(30)">30m</button>
+                <button class="btn-break" onclick="setBreak(45)">45m</button>
+                <button class="btn-break" onclick="setBreak(60)">1h</button>
+                <button class="btn-break" onclick="setBreak(0)" id="btn-no-break">0</button>
+            </div>
+
+            <label id="lbl-desc">Opis pracy</label>
+            <textarea id="workDesc" rows="2"></textarea>
 
             <div class="btn-group">
-                <button class="btn-save" id="btn-work" onclick="handleEntry('WORK')"></button>
-                <button class="btn-vacation" id="btn-vac" onclick="handleEntry('VACATION')"></button>
+                <button class="btn-save" id="btn-work" onclick="handleEntry('WORK')">ZAPISZ</button>
+                <button class="btn-vacation" id="btn-vac" onclick="handleEntry('VACATION')">URLOP</button>
             </div>
 
             <div class="io-group">
@@ -84,17 +100,17 @@
         </div>
 
         <div id="logHistory"></div>
-        <div class="footer-stats" id="statLine"></div>
     </div>
 
     <script>
         const i18n = {
-            pl: { sub: "Ewidencja Pracy i Urlopów", date: "Data", time: "Czas pracy (Od - Do)", desc: "Opis wykonanej pracy", work: "ZAPISZ PRACĘ", vac: "🌴 URLOP", vacDay: "🌴 DZIEŃ URLOPU", stat: "Wykorzystany urlop: ", alert: "Podaj godziny!" },
-            de: { sub: "Arbeits- und Urlaubsaufzeichnung", date: "Datum", time: "Arbeitszeit (Von - Bis)", desc: "Beschreibung der Arbeit", work: "SPEICHERN", vac: "🌴 URLAUB", vacDay: "🌴 URLAUBSTAG", stat: "Genutzter Urlaub: ", alert: "Stunden eingeben!" },
-            en: { sub: "Work and Vacation Log", date: "Date", time: "Work Hours (From - To)", desc: "Work Description", work: "SAVE WORK", vac: "🌴 VACATION", vacDay: "🌴 VACATION DAY", stat: "Vacation used: ", alert: "Enter hours!" }
+            pl: { date: "Data", time: "Czas pracy (Od - Do)", break: "Przerwa", desc: "Opis wykonanej pracy", work: "ZAPISZ PRACĘ", vac: "🌴 URLOP", vacDay: "🌴 DZIEŃ URLOPU", statW: "Tydzień:", statM: "Miesiąc:", statV: "Urlop:", alert: "Podaj godziny!" },
+            de: { date: "Datum", time: "Arbeitszeit (Von - Bis)", break: "Pause", desc: "Arbeitsbeschreibung", work: "SPEICHERN", vac: "🌴 URLAUB", vacDay: "🌴 URLAUBSTAG", statW: "Woche:", statM: "Monat:", statV: "Urlaub:", alert: "Stunden eingeben!" },
+            en: { date: "Date", time: "Hours (From - To)", break: "Break", desc: "Work description", work: "SAVE WORK", vac: "🌴 VACATION", vacDay: "🌴 VACATION DAY", statW: "Week:", statM: "Month:", statV: "Vacation:", alert: "Enter hours!" }
         };
 
         let currentLang = localStorage.getItem('nesky_lang') || 'pl';
+        let selectedBreak = 0;
         document.getElementById('workDate').valueAsDate = new Date();
 
         function setLang(l) {
@@ -103,104 +119,137 @@
             render();
         }
 
+        function setBreak(min) {
+            selectedBreak = min;
+            document.querySelectorAll('.btn-break').forEach(b => {
+                b.classList.toggle('selected', parseInt(b.innerText) === min || (min === 60 && b.innerText === '1h') || (min === 0 && b.innerText === '0'));
+            });
+        }
+
         function handleEntry(type) {
             const date = document.getElementById('workDate').value;
             const desc = document.getElementById('workDesc').value;
             if(!date) return;
-            let entry = { id: Date.now(), date, type, desc };
+            let entry = { id: Date.now(), date, type, desc, break: selectedBreak };
 
             if(type === 'WORK') {
                 const s = document.getElementById('startTime').value;
                 const e = document.getElementById('endTime').value;
                 if(!s || !e) return alert(i18n[currentLang].alert);
                 entry.s = s; entry.e = e;
-                entry.dur = calcDur(s, e);
+                entry.totalMinutes = calcMin(s, e, selectedBreak);
+                entry.dur = formatMin(entry.totalMinutes);
             }
 
-            let history = JSON.parse(localStorage.getItem('nesky_logs_final')) || [];
+            let history = JSON.parse(localStorage.getItem('nesky_logs_v5')) || [];
             history.unshift(entry);
-            localStorage.setItem('nesky_logs_final', JSON.stringify(history));
+            localStorage.setItem('nesky_logs_v5', JSON.stringify(history));
             
-            // Czyść pola po zapisie
             document.getElementById('workDesc').value = '';
+            setBreak(0);
             render();
         }
 
-        function calcDur(s, e) {
+        function calcMin(s, e, brk) {
             const t1 = new Date("2000/01/01 " + s);
             const t2 = new Date("2000/01/01 " + e);
-            let d = t2 - t1;
-            if(d < 0) d += 86400000;
-            const h = Math.floor(d/3600000);
-            const m = Math.floor((d%3600000)/60000);
-            return `${h}h ${m}m`;
+            let d = (t2 - t1) / 60000;
+            if(d < 0) d += 1440;
+            return Math.max(0, d - brk);
+        }
+
+        function formatMin(m) {
+            const h = Math.floor(m/60);
+            const min = m % 60;
+            return `${h}h ${min}m`;
+        }
+
+        function getStats(history) {
+            const now = new Date();
+            const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 1)).setHours(0,0,0,0);
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+            
+            let weekMin = 0, monthMin = 0, vacDays = 0;
+
+            history.forEach(item => {
+                const itemDate = new Date(item.date).getTime();
+                if(item.type === 'VACATION') {
+                    if(itemDate >= startOfMonth) vacDays++;
+                } else {
+                    if(itemDate >= startOfWeek) weekMin += item.totalMinutes;
+                    if(itemDate >= startOfMonth) monthMin += item.totalMinutes;
+                }
+            });
+            return { week: formatMin(weekMin), month: formatMin(monthMin), vac: vacDays };
         }
 
         function exportData() {
-            const data = localStorage.getItem('nesky_logs_final');
-            if(!data) return;
+            const data = localStorage.getItem('nesky_logs_v5');
             const blob = new Blob([data], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
-            a.download = `nesky_worklog_backup.json`;
+            a.href = URL.createObjectURL(blob);
+            a.download = `nesky_worklog_v5.json`;
             a.click();
         }
 
         function importData(e) {
-            const file = e.target.files[0];
-            if(!file) return;
             const reader = new FileReader();
-            reader.onload = (event) => {
-                try {
-                    const imported = JSON.parse(event.target.result);
-                    localStorage.setItem('nesky_logs_final', JSON.stringify(imported));
-                    render();
-                } catch(err) { alert("Błąd pliku!"); }
+            reader.onload = (ev) => {
+                localStorage.setItem('nesky_logs_v5', ev.target.result);
+                render();
             };
-            reader.readAsText(file);
+            reader.readAsText(e.target.files[0]);
         }
 
         function render() {
             const t = i18n[currentLang];
             document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.innerText.toLowerCase() === currentLang));
-            document.getElementById('sub-title').innerText = t.sub;
+            
             document.getElementById('lbl-date').innerText = t.date;
             document.getElementById('lbl-time').innerText = t.time;
+            document.getElementById('lbl-break').innerText = t.break;
             document.getElementById('lbl-desc').innerText = t.desc;
             document.getElementById('btn-work').innerText = t.work;
             document.getElementById('btn-vac').innerText = t.vac;
 
-            const history = JSON.parse(localStorage.getItem('nesky_logs_final')) || [];
+            const history = JSON.parse(localStorage.getItem('nesky_logs_v5')) || [];
+            const stats = getStats(history);
+            
+            document.getElementById('statsArea').innerHTML = `
+                <div class="stats-row"><span>${t.statW}</span> <span class="stats-val">${stats.week}</span></div>
+                <div class="stats-row"><span>${t.statM}</span> <span class="stats-val">${stats.month}</span></div>
+                <div class="stats-row"><span>${t.statV} (msc)</span> <span class="stats-val">${stats.vac} dni</span></div>
+            `;
+
             const list = document.getElementById('logHistory');
             list.innerHTML = '';
-            let vCount = 0;
 
             history.forEach(item => {
                 const isV = item.type === 'VACATION';
-                if(isV) vCount++;
                 const div = document.createElement('div');
                 div.className = `history-item ${isV ? 'item-vacation' : ''}`;
                 div.innerHTML = `
                     <div class="info">
                         <b>${item.date}</b>
-                        ${isV ? `<span class="v-text">${t.vacDay}</span>` : `<span>🕒 ${item.s} - ${item.e} (${item.dur})</span>`}
+                        ${isV ? `<span class="v-text">${t.vacDay}</span>` : 
+                        `<span>🕒 ${item.s} - ${item.e} (<b>${item.dur}</b>)</span> 
+                         ${item.break > 0 ? `<span class="break-text"> / -${item.break}m przerw</span>` : ''}`}
                         ${item.desc ? `<span class="desc">${item.desc}</span>` : ''}
                     </div>
                     <button class="delete-btn" onclick="del(${item.id})">×</button>
                 `;
                 list.appendChild(div);
             });
-            document.getElementById('statLine').innerHTML = `${t.stat} ${vCount}`;
         }
 
         function del(id) {
-            let history = JSON.parse(localStorage.getItem('nesky_logs_final')) || [];
+            let history = JSON.parse(localStorage.getItem('nesky_logs_v5')) || [];
             history = history.filter(x => x.id !== id);
-            localStorage.setItem('nesky_logs_final', JSON.stringify(history));
+            localStorage.setItem('nesky_logs_v5', JSON.stringify(history));
             render();
         }
 
+        setBreak(0);
         render();
     </script>
 </body>
